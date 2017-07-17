@@ -1,0 +1,9 @@
+[package]
+name = "exact-openapi-gen"
+version = "0.1.0"
+authors = ["wildarch <daandegraaf9@gmail.com>"]
+
+[dependencies]
+xml-rs = "0.6.0"
+reqwest = "0.7.1"
+error-chain = "0.10"
