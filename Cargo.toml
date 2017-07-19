@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["wildarch <daandegraaf9@gmail.com>"]
 
 [dependencies]
-xml-rs = "0.6.0"
-reqwest = "0.7.1"
+select = "0.4"
+reqwest = "0.7"
 error-chain = "0.10"
+openapi = { git = "https://github.com/softprops/openapi" }
