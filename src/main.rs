@@ -2,13 +2,23 @@ extern crate exact_openapi_gen;
 extern crate reqwest;
 extern crate openapi;
 
+use std::fs::File;
+use std::io::Write;
+
 fn main() {
-    let url = reqwest::Url::parse("https://start.exactonline.nl/docs/HlpRestAPIResourcesDetails.aspx?name=AccountancyAccountOwners").unwrap();
-    let details = exact_openapi_gen::fetch_endpoint_details(url).expect("parse details");
-    println!("{:?}", &details);
-    let endpoints = vec![details];
+    let urls = exact_openapi_gen::fetch_endpoint_urls().expect("Fetched endpoint urls");
+    let endpoints = urls.into_iter()
+        .filter(|url| 
+            url.as_str().starts_with("https://start.exactonline.nl/docs/HlpRestAPIResourcesDetails.aspx?name=Project") || 
+            url.as_str().starts_with("https://start.exactonline.nl/docs/HlpRestAPIResourcesDetails.aspx?name=Manufacturing"))
+        .filter_map(|url| {
+            println!("{}", &url);
+            exact_openapi_gen::fetch_endpoint_details(url).ok()
+        }).collect();
 
     let spec = exact_openapi_gen::build_spec(endpoints);
-    let yaml = openapi::to_yaml(&spec.expect("Valid spec")).expect("Valid yaml spec");
-    println!("Yaml: {}", yaml);
+    let json = openapi::to_json(&spec.expect("Valid spec")).expect("Valid yaml spec");
+    let mut file = File::create("api.json").expect("File opened");
+    file.write_all(json.as_bytes()).expect("Successfully written to file");
+
 }
