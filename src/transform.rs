@@ -207,19 +207,24 @@ fn build_definition(method: Method, endpoint: &EndpointDetails) -> Schema {
                 schema_type: Some(openapi_type.type_),
                 format: openapi_type.format,
                 enum_values: None,
-                // TODO add keys for post and put
                 required: None,
                 items: None,
                 properties: None,
             })
         }));
+    // If the method is Post of Put, all keys are required properties
+    let required_properties = if method == Method::Post || method == Method::Put {
+        Some(endpoint.properties.iter().filter(|p| p.key).map(|p| p.name.clone()).collect())
+    } else {
+        None
+    };
     let schema = Schema {
         ref_path: None,
         description: None,
         schema_type: Some("object".to_owned()),
         format: None,
         enum_values: None,
-        required: None,
+        required: required_properties,
         items: None,
         properties: Some(properties),
     };
