@@ -1,4 +1,4 @@
-use openapi::{Contact, Info, License, Operation, Operations, Parameter, Response, Schema, Spec, ParameterOrRef};
+use openapi::{Contact, Info, License, Operation, Operations, Parameter, Response, Schema, Spec, ParameterOrRef, Security};
 use acquisition::{EndpointDetails, EdmType};
 
 use std::collections::BTreeMap;
@@ -168,21 +168,21 @@ impl From<EdmType> for OpenApiType {
     fn from(edm: EdmType) -> OpenApiType {
         let (t, f) = match edm {
             EdmType::Null => ("null", None),
-            EdmType::Binary => ("string", Some("binary")),
+            EdmType::Binary => ("string", Some("edm-binary")),
             EdmType::Boolean => ("boolean", None),
-            EdmType::Byte => ("string", Some("byte")),
+            EdmType::Byte => ("string", Some("edm-byte")),
             EdmType::DateTime => ("string", Some("edm-datetime")),
             EdmType::Decimal => ("string", Some("edm-decimal")),
             EdmType::Double => ("number", Some("double")),
             EdmType::Single => ("number", Some("float")),
-            EdmType::Guid => ("string", Some("uuid")),
+            EdmType::Guid => ("string", Some("guid")),
             EdmType::Int16 => ("integer", Some("int16")),
             EdmType::Int32 => ("integer", Some("int32")),
             EdmType::Int64 => ("integer", Some("int64")),
-            EdmType::SByte => ("integer", Some("int8")),
+            EdmType::SByte => ("integer", Some("edm-int8")),
             EdmType::String => ("string", None),
-            EdmType::Time => ("string", Some("time")),
-            EdmType::DateTimeOffset => ("string", Some("date-time-offset")),
+            EdmType::Time => ("string", Some("edm-time")),
+            EdmType::DateTimeOffset => ("string", Some("edm-date-time-offset")),
         };
         OpenApiType::new(t, f)
     }
@@ -205,7 +205,7 @@ fn build_definition(method: Method, endpoint: &EndpointDetails) -> Schema {
                 properties: None,
             })
         }));
-    Schema {
+    let schema = Schema {
         ref_path: None,
         description: None,
         schema_type: Some("object".to_owned()),
@@ -214,6 +214,44 @@ fn build_definition(method: Method, endpoint: &EndpointDetails) -> Schema {
         required: None,
         items: None,
         properties: Some(properties),
+    };
+    if method == Method::Get {
+        let mut data = BTreeMap::new();
+        let mut d = BTreeMap::new();
+        d.insert("results".to_owned(), Schema {
+            ref_path: None,
+            description: None,
+            schema_type: Some("array".to_owned()),
+            format: None,
+            enum_values: None,
+            required: None,
+            items: Some(Box::new(schema)),
+            properties: None,
+        });
+        data.insert("d".to_owned(), Schema {
+            ref_path: None,
+            description: None,
+            schema_type: Some("object".to_owned()),
+            format: None,
+            enum_values: None,
+            required: None,
+            items: None,
+            properties: Some(d)
+        });
+        let required = vec!["d".to_owned()];
+        Schema {
+            ref_path: None,
+            description: None,
+            schema_type: Some("object".to_owned()),
+            format: None,
+            enum_values: None,
+            required: Some(required),
+            items: None,
+            properties: Some(data)
+        }
+    }
+    else {
+        schema
     }
 }
 
@@ -305,6 +343,31 @@ fn build_parameters<'a, T: Iterator<Item=&'a EndpointDetails>>(endpoints: T) -> 
     Ok(parameters)
 }
 
+fn build_security_definitions() -> BTreeMap<String, Security> {
+    let mut security_definitions = BTreeMap::new();
+    security_definitions.insert("ApiKey".to_owned(), Security::ApiKey {
+        name: "Authorization".to_owned(),
+        location: "header".to_owned(),
+    });
+    /*
+    let mut scopes = BTreeMap::new();
+    scopes.insert("admin".to_owned(), "full access (within the restrictions set by Exact Online settings)".to_owned());
+    security_definitions.insert("exact_auth".to_owned(), Security::Oauth2 {
+        flow: "accessCode".to_owned(),
+        authorization_url: "https://start.exactonline.nl/api/oauth2/auth".to_owned(),
+        token_url: Some("https://start.exactonline.nl/api/oauth2/token".to_owned()),
+        scopes: scopes
+    });
+    */
+    security_definitions
+}
+
+fn build_security_requirements() -> Vec<BTreeMap<String, Vec<String>>> {
+    let mut requirement = BTreeMap::new();
+    requirement.insert("ApiKey".to_owned(), Vec::default());
+    vec![requirement]
+}
+
 pub fn build_spec(endpoints: Vec<EndpointDetails>) -> Result<Spec> {
     Ok(Spec {
         swagger: "2.0".to_owned(),
@@ -334,6 +397,7 @@ pub fn build_spec(endpoints: Vec<EndpointDetails>) -> Result<Spec> {
         parameters: Some(build_parameters(endpoints.iter())?),
         responses: None,
         // TODO: Set the correct security definitions
-        security_definitions: None
+        security_definitions: Some(build_security_definitions()),
+        security: Some(build_security_requirements()),
     })
 }

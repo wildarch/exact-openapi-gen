@@ -8,9 +8,12 @@ use std::io::Write;
 fn main() {
     let urls = exact_openapi_gen::fetch_endpoint_urls().expect("Fetched endpoint urls");
     let endpoints = urls.into_iter()
+    /*
         .filter(|url| 
             url.as_str().starts_with("https://start.exactonline.nl/docs/HlpRestAPIResourcesDetails.aspx?name=Project") || 
             url.as_str().starts_with("https://start.exactonline.nl/docs/HlpRestAPIResourcesDetails.aspx?name=Manufacturing"))
+    */
+        .take(5)
         .filter_map(|url| {
             println!("{}", &url);
             exact_openapi_gen::fetch_endpoint_details(url).ok()
