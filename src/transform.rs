@@ -90,6 +90,15 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
             })
         });
         let mut parameters = Vec::new();
+        if method == Method::Get {
+            // Add $filter, $select
+            parameters.push(ParameterOrRef::Ref {
+                ref_path: "#/parameters/filter".to_owned()
+            });
+            parameters.push(ParameterOrRef::Ref {
+                ref_path: "#/paramters/select".to_owned()
+            });
+        }
         if details.uri.contains("{division}") {
             parameters.push(ParameterOrRef::Ref {
                 ref_path: "#/parameters/Division".to_owned()
@@ -137,7 +146,6 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
 
         Some(Operation {
             responses: responses,
-            // TODO: Implement this too
             parameters: Some(parameters),
             summary: None,
             description: None,
@@ -340,6 +348,26 @@ fn build_parameters<'a, T: Iterator<Item=&'a EndpointDetails>>(endpoints: T) -> 
         format: Some("int32".to_owned()),
         description: None
     });
+    parameters.insert("filter".to_owned(), Parameter {
+        name: "$filter".to_owned(),
+        location: "query".to_owned(),
+        required: Some(false),
+        schema: None,
+        unique_items: None,
+        param_type: Some("string".to_owned()),
+        format: Some("$filter".to_owned()),
+        description: None,
+    });
+    parameters.insert("select".to_owned(), Parameter {
+        name: "$select".to_owned(),
+        location: "query".to_owned(),
+        required: Some(false),
+        schema: None,
+        unique_items: None,
+        param_type: Some("string".to_owned()),
+        format: Some("$select".to_owned()),
+        description: None,
+    });
     Ok(parameters)
 }
 
@@ -349,16 +377,6 @@ fn build_security_definitions() -> BTreeMap<String, Security> {
         name: "Authorization".to_owned(),
         location: "header".to_owned(),
     });
-    /*
-    let mut scopes = BTreeMap::new();
-    scopes.insert("admin".to_owned(), "full access (within the restrictions set by Exact Online settings)".to_owned());
-    security_definitions.insert("exact_auth".to_owned(), Security::Oauth2 {
-        flow: "accessCode".to_owned(),
-        authorization_url: "https://start.exactonline.nl/api/oauth2/auth".to_owned(),
-        token_url: Some("https://start.exactonline.nl/api/oauth2/token".to_owned()),
-        scopes: scopes
-    });
-    */
     security_definitions
 }
 
@@ -396,7 +414,6 @@ pub fn build_spec(endpoints: Vec<EndpointDetails>) -> Result<Spec> {
         definitions: Some(build_definitions(endpoints.iter())?),
         parameters: Some(build_parameters(endpoints.iter())?),
         responses: None,
-        // TODO: Set the correct security definitions
         security_definitions: Some(build_security_definitions()),
         security: Some(build_security_requirements()),
     })
