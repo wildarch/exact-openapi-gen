@@ -7,11 +7,11 @@ use std::io::Write;
 
 fn main() {
     let selected_endpoint_names = vec![
-//        "SystemSystemMe",
-//        "ProjectProjects", 
-//       "ManufacturingOperations", 
-//        "ManufacturingShopOrderRoutingStepPlans",
-//        "PayrollEmploymentContracts",
+        "SystemSystemMe",
+        "ProjectProjects", 
+        "ManufacturingOperations", 
+        "ManufacturingShopOrderRoutingStepPlans",
+        "PayrollEmploymentContracts",
         "ManufacturingTimeTransactions"
     ];
 

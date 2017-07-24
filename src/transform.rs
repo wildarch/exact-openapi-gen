@@ -12,26 +12,16 @@ fn build_paths<'a, T: Iterator<Item=&'a EndpointDetails>>(endpoints: T) -> Resul
         if endpoint.methods.contains(&Method::Put) || endpoint.methods.contains(&Method::Delete) {
             let url = format!("{}(guid'{{id}}')", endpoint.uri);
             paths.insert(url, Operations {
-                get: None,
-                post: None,
                 put: build_operation(Method::Put, endpoint),
                 delete: build_operation(Method::Delete, endpoint),
-                patch: None,
-                head: None,
-                options: None,
-                parameters: None
+                ..Operations::default()
             });
         }
         if endpoint.methods.contains(&Method::Get) || endpoint.methods.contains(&Method::Post) {
             paths.insert(endpoint.uri.clone(), Operations {
                 get: build_operation(Method::Get, endpoint),
                 post: build_operation(Method::Post, endpoint),
-                put: None,
-                delete: None,
-                patch: None,
-                head: None,
-                options: None,
-                parameters: None
+                ..Operations::default()
             });
         }
     }
@@ -51,13 +41,7 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
         let success_schema = if method == Method::Delete { None } else {
             Some(Schema {
                 ref_path: Some(format!("#/definitions/{}Response", details.name)),
-                description: None,
-                schema_type: None,
-                format: None,
-                enum_values: None,
-                required: None,
-                items: None,
-                properties: None
+                ..Schema::default()
             })
         };
         responses.insert(success_status.to_owned(), Response {
@@ -80,13 +64,7 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
             description: "Error".to_owned(),
             schema: Some(Schema {
                 ref_path: Some("#/definitions/Error".to_owned()),
-                description: None,
-                schema_type: None,
-                format: None,
-                enum_values: None,
-                required: None,
-                items: None,
-                properties: None,
+                ..Schema::default()
             })
         });
         let mut parameters = Vec::new();
@@ -97,6 +75,9 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
             });
             parameters.push(ParameterOrRef::Ref {
                 ref_path: "#/parameters/select".to_owned()
+            });
+            parameters.push(ParameterOrRef::Ref {
+                ref_path: "#/parameters/order_by".to_owned()
             });
         }
         if details.uri.contains("{division}") {
@@ -117,13 +98,7 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
                 required: Some(true),
                 schema: Some(Schema {
                     ref_path: Some(format!("#/definitions/{}{}", details.name, def_suffix)),
-                    description: None,
-                    schema_type: None,
-                    format: None,
-                    enum_values: None,
-                    required: None,
-                    items: None,
-                    properties: None,
+                    ..Schema::default()
                 }),
                 unique_items: None,
                 param_type: None,
@@ -147,13 +122,7 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
         Some(Operation {
             responses: responses,
             parameters: Some(parameters),
-            summary: None,
-            description: None,
-            consumes: None,
-            produces: None,
-            schemes: None,
-            tags: None,
-            operation_id: None,
+            ..Operation::default()
         })
     } else {
         // This operation is not implemented for the given endpoint
@@ -202,14 +171,10 @@ fn build_definition(method: Method, endpoint: &EndpointDetails) -> Schema {
         .map(|p| {
             let openapi_type = OpenApiType::from(p.edm_type.clone());
             (p.name.clone(), Schema {
-                ref_path: None,
                 description: p.description.clone(),
                 schema_type: Some(openapi_type.type_),
                 format: openapi_type.format,
-                enum_values: None,
-                required: None,
-                items: None,
-                properties: None,
+                ..Schema::default()
             })
         }));
     // If the method is Post of Put, all keys are required properties
@@ -219,48 +184,30 @@ fn build_definition(method: Method, endpoint: &EndpointDetails) -> Schema {
         None
     };
     let schema = Schema {
-        ref_path: None,
-        description: None,
         schema_type: Some("object".to_owned()),
-        format: None,
-        enum_values: None,
         required: required_properties,
-        items: None,
         properties: Some(properties),
+        ..Schema::default()
     };
     if method == Method::Get {
         let mut data = BTreeMap::new();
         let mut d = BTreeMap::new();
         d.insert("results".to_owned(), Schema {
-            ref_path: None,
-            description: None,
             schema_type: Some("array".to_owned()),
-            format: None,
-            enum_values: None,
-            required: None,
             items: Some(Box::new(schema)),
-            properties: None,
+            ..Schema::default()
         });
         data.insert("d".to_owned(), Schema {
-            ref_path: None,
-            description: None,
             schema_type: Some("object".to_owned()),
-            format: None,
-            enum_values: None,
-            required: None,
-            items: None,
-            properties: Some(d)
+            properties: Some(d),
+            ..Schema::default()
         });
         let required = vec!["d".to_owned()];
         Schema {
-            ref_path: None,
-            description: None,
             schema_type: Some("object".to_owned()),
-            format: None,
-            enum_values: None,
             required: Some(required),
-            items: None,
-            properties: Some(data)
+            properties: Some(data),
+            ..Schema::default()
         }
     }
     else {
@@ -288,56 +235,30 @@ fn build_definitions<'a, T: Iterator<Item=&'a EndpointDetails>>(endpoints: T) ->
 fn build_error_schema() -> Schema {
     let mut error_properties = BTreeMap::new();
     error_properties.insert("code".to_owned(), Schema {
-        ref_path: None,
-        description: None,
         schema_type: Some("string".to_owned()),
-        format: None,
-        enum_values: None,
-        required: None,
-        items: None,
-        properties: None
+        ..Schema::default()
     });
     let mut message_properties = BTreeMap::new();
     message_properties.insert("value".to_owned(), Schema {
-        ref_path: None,
         description: Some("Error cause".to_owned()),
         schema_type: Some("string".to_owned()),
-        format: None,
-        enum_values: None,
-        required: None,
-        items: None,
-        properties: None
+        ..Schema::default()
     });
     error_properties.insert("message".to_owned(), Schema {
-        ref_path: None,
-        description: None,
         schema_type: Some("object".to_owned()),
-        format: None,
-        enum_values: None,
-        required: None,
-        items: None,
-        properties: Some(message_properties)
+        properties: Some(message_properties),
+        ..Schema::default()
     });
     let mut error_property = BTreeMap::new();
     error_property.insert("error".to_owned(), Schema {
-        ref_path: None,
-        description: None,
         schema_type: Some("object".to_owned()),
-        format: None,
-        enum_values: None,
-        required: None,
-        items: None,
-        properties: Some(error_properties)
+        properties: Some(error_properties),
+        ..Schema::default()
     });
     Schema {
-        ref_path: None,
-        description: None,
         schema_type: Some("object".to_owned()),
-        format: None,
-        enum_values: None,
-        required: None,
-        items: None,
-        properties: Some(error_property)
+        properties: Some(error_property),
+        ..Schema::default()
     }
 }
 
@@ -347,31 +268,33 @@ fn build_parameters() -> BTreeMap<String, Parameter> {
         name: "division".to_owned(),
         location: "path".to_owned(),
         required: Some(true),
-        schema: None,
-        unique_items: None,
         param_type: Some("integer".to_owned()),
         format: Some("int32".to_owned()),
-        description: None
+        ..Parameter::default()
     });
     parameters.insert("filter".to_owned(), Parameter {
         name: "$filter".to_owned(),
         location: "query".to_owned(),
         required: Some(false),
-        schema: None,
-        unique_items: None,
         param_type: Some("string".to_owned()),
         format: Some("$filter".to_owned()),
-        description: None,
+        ..Parameter::default()
     });
     parameters.insert("select".to_owned(), Parameter {
         name: "$select".to_owned(),
         location: "query".to_owned(),
         required: Some(false),
-        schema: None,
-        unique_items: None,
         param_type: Some("string".to_owned()),
         format: Some("$select".to_owned()),
-        description: None,
+        ..Parameter::default()
+    });
+    parameters.insert("order_by".to_owned(), Parameter {
+        name: "$orderBy".to_owned(),
+        location: "query".to_owned(),
+        required: Some(false),
+        param_type: Some("string".to_owned()),
+        format: Some("$orderBy".to_owned()),
+        ..Parameter::default()
     });
     parameters
 }
