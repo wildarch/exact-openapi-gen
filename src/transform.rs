@@ -96,7 +96,7 @@ fn build_operation<'a>(method: Method, details: &'a EndpointDetails) -> Option<O
                 ref_path: "#/parameters/filter".to_owned()
             });
             parameters.push(ParameterOrRef::Ref {
-                ref_path: "#/paramters/select".to_owned()
+                ref_path: "#/parameters/select".to_owned()
             });
         }
         if details.uri.contains("{division}") {
@@ -341,7 +341,7 @@ fn build_error_schema() -> Schema {
     }
 }
 
-fn build_parameters<'a, T: Iterator<Item=&'a EndpointDetails>>(endpoints: T) -> Result<BTreeMap<String, Parameter>> {
+fn build_parameters() -> BTreeMap<String, Parameter> {
     let mut parameters = BTreeMap::new();
     parameters.insert("Division".to_owned(), Parameter {
         name: "division".to_owned(),
@@ -373,7 +373,7 @@ fn build_parameters<'a, T: Iterator<Item=&'a EndpointDetails>>(endpoints: T) -> 
         format: Some("$select".to_owned()),
         description: None,
     });
-    Ok(parameters)
+    parameters
 }
 
 fn build_security_definitions() -> BTreeMap<String, Security> {
@@ -417,7 +417,7 @@ pub fn build_spec(endpoints: Vec<EndpointDetails>) -> Result<Spec> {
         tags: None,
         paths: build_paths(endpoints.iter())?,
         definitions: Some(build_definitions(endpoints.iter())?),
-        parameters: Some(build_parameters(endpoints.iter())?),
+        parameters: Some(build_parameters()),
         responses: None,
         security_definitions: Some(build_security_definitions()),
         security: Some(build_security_requirements()),

@@ -6,14 +6,21 @@ use std::fs::File;
 use std::io::Write;
 
 fn main() {
+    let selected_endpoint_names = vec![
+//        "SystemSystemMe",
+//        "ProjectProjects", 
+//       "ManufacturingOperations", 
+//        "ManufacturingShopOrderRoutingStepPlans",
+//        "PayrollEmploymentContracts",
+        "ManufacturingTimeTransactions"
+    ];
+
     let urls = exact_openapi_gen::fetch_endpoint_urls().expect("Fetched endpoint urls");
     let endpoints = urls.into_iter()
-    /*
-        .filter(|url| 
-            url.as_str().starts_with("https://start.exactonline.nl/docs/HlpRestAPIResourcesDetails.aspx?name=Project") || 
-            url.as_str().starts_with("https://start.exactonline.nl/docs/HlpRestAPIResourcesDetails.aspx?name=Manufacturing"))
-    */
-        .take(5)
+        .filter(|url| {
+            let url = String::from(url.as_str());
+            selected_endpoint_names.iter().any(|selected| url.ends_with(selected))
+        })
         .filter_map(|url| {
             println!("{}", &url);
             exact_openapi_gen::fetch_endpoint_details(url).ok()
@@ -23,5 +30,4 @@ fn main() {
     let json = openapi::to_json(&spec.expect("Valid spec")).expect("Valid json spec");
     let mut file = File::create("api.json").expect("File opened");
     file.write_all(json.as_bytes()).expect("Successfully written to file");
-
 }
